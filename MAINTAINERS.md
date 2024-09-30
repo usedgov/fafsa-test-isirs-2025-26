@@ -6,5 +6,5 @@ This is a list of maintainers for this project. See CODEOWNERS for list of revie
 |:-----|:-----|:-----|:-----|
 | Maintainer | Shane Holloway | @shanewholloway-usds-2 | U.S. Digital Service |
 | Maintainer | Alain Kuchta   | @alain-owen-kuchta | U.S. Digital Service |
+| Maintainer | Chris Cummings  | @ChrisCummingsUSDS | U.S. Digital Service |
 | Maintainer | Sierra Brandt  | @sierrabrandtFSA | FSA Digital Service |
-
