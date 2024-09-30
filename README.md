@@ -1,12 +1,12 @@
 ## **FAFSA Test ISIRs 2025-26**
-Test ISIRs for the 2025-26 FAFSA Award Year with standalone tools to view and validate ISIRs and to assist with creating mock data for test ISIRs.
+Test ISIRs for the 2025-26 FAFSA Award Year with standalone tools to view and validate ISIRs.
 
 ## About the Project
 This project is a collaboration between the Department of Education, Federal Student Aid, and the U.S. Digital Service.
 
 Our goal is to accelerate the successful processing of Institutional Student Information Records (ISIRs) for the 2025-26 FAFSA Award Year by our partners in higher education.  
 
-This repository holds test ISIRs and tools to help colleges, third-party servicers, and software vendors prepare to package students’ financial aid as quickly and accurately as possible. The actual 2025-26 FAFSA student and parent application is on [studentaid.gov](https://studentaid.gov/h/apply-for-aid/fafsa).
+This repository holds test ISIRs and tools to help colleges, third-party servicers, and software vendors prepare to package students’ financial aid quickly and accurately. The actual 2025-26 FAFSA student and parent application is on [studentaid.gov](https://studentaid.gov/h/apply-for-aid/fafsa).
 
 ### ISIR technical specification for FAFSA 2025-2625
 
