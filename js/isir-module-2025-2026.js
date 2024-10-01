@@ -385,15 +385,6 @@ const _validate_correction = (sz_value) => {
     return m ? {valid: true, result: m.groups} : false
 }
 
-function _check_date_range(value_date, min_date, max_date) {
-    let valid = min_date <= value_date && value_date <= max_date
-    //let valid = value_date <= max_date
-    return valid && {valid, result: value_date,
-        valid_min: min_date <= value_date,
-        valid_max: value_date <= max_date,
-    }
-}
-
 function _check_range(value, min, max) {
     value = parseInt(value)
     let valid = Number.isFinite(value) && parseInt(min) <= value && value <= parseInt(max)
@@ -420,7 +411,19 @@ const _validate_by_op = {
         let valid = Object.hasOwn(op.options, sz_value)
         return valid && {valid, result: op.options[sz_value]}
     },
-    date_range: (sz_value, op) => _check_date_range(sz_value, op.min, op.max),
+    date_range: (sz_value, op) => {
+        let valid = /(\d{4})(\d{2})(\d{2})?/.test(sz_value)
+        // use lexographical compare for YYYYMMDD ordering
+        if (op.min) {
+            var valid_min = op.min <= sz_value
+            valid &&= valid_min
+        }
+        if (op.max) {
+            var valid_max = sz_value <= op.max
+            valid &&= valid_max
+        }
+        return valid && {valid, result: sz_value, valid_min, valid_max }
+    },
     range: (sz_value, op) => _check_range(sz_value, op.min, op.max),
     year: (sz_value) => _check_range(sz_value, 1900, 2100),
     date: (sz_value) => _check_date(sz_value),
@@ -1272,6 +1275,7 @@ export const field_29 = {len: 8, pos_start: 337, pos_end: 345,
     validate: _validate_date, allow_blank: true,
     options: [
       {op: "range", "min":"19000101","max":"20251231"},
+      {op: "date_range", "min":false,"max":false},
     ],
     note: [
         "19000101 to current date",
@@ -1801,6 +1805,7 @@ export const field_66 = {len: 6, pos_start: 594, pos_end: 600,
     validate: _validate_yearmonth, allow_blank: true,
     options: [
       {op: "range", "min":"190001","max":"20251231"},
+      {op: "date_range", "min":false,"max":false},
     ],
     note: [
         "Numeric within valid date range; 190001 to current date",
@@ -2757,6 +2762,7 @@ export const field_136 = {len: 8, pos_start: 1149, pos_end: 1157,
     validate: _validate_date, allow_blank: true,
     options: [
       {op: "range", "min":"19000101","max":"20251231"},
+      {op: "date_range", "min":false,"max":false},
     ],
     note: [
         "19000101 to current date",
@@ -3226,6 +3232,7 @@ export const field_170 = {len: 8, pos_start: 1605, pos_end: 1613,
     validate: _validate_date, allow_blank: true,
     options: [
       {op: "range", "min":"19000101","max":"20251231"},
+      {op: "date_range", "min":false,"max":false},
     ],
     note: [
         "19000101 to current date",
@@ -3409,6 +3416,7 @@ export const field_182 = {len: 6, pos_start: 1778, pos_end: 1784,
     validate: _validate_yearmonth, allow_blank: true,
     options: [
       {op: "range", "min":"190001","max":"20251231"},
+      {op: "date_range", "min":false,"max":false},
     ],
     note: [
         "Numeric within valid date range; 190001 to current date",
@@ -3999,6 +4007,7 @@ export const field_226 = {len: 8, pos_start: 2121, pos_end: 2129,
     validate: _validate_date, allow_blank: true,
     options: [
       {op: "range", "min":"19000101","max":"20251231"},
+      {op: "date_range", "min":false,"max":false},
     ],
     note: [
         "19000101 to current date",
@@ -4642,6 +4651,7 @@ export const field_272 = {len: 8, pos_start: 2745, pos_end: 2753,
     validate: _validate_date, allow_blank: true,
     options: [
       {op: "range", "min":"19000101","max":"20261231"},
+      {op: "date_range", "min":false,"max":false},
     ],
     note: [
         "Numeric within valid date range; 19000101 to 20261231",
@@ -4654,6 +4664,7 @@ export const field_273 = {len: 8, pos_start: 2753, pos_end: 2761,
     validate: _validate_date, allow_blank: true,
     options: [
       {op: "range", "min":"19000101","max":"20261231"},
+      {op: "date_range", "min":false,"max":false},
     ],
     note: [
         "Numeric within valid date range; 19000101 to 20261231",
@@ -4666,6 +4677,7 @@ export const field_274 = {len: 8, pos_start: 2761, pos_end: 2769,
     validate: _validate_date, allow_blank: true,
     options: [
       {op: "range", "min":"19000101","max":"20261231"},
+      {op: "date_range", "min":false,"max":false},
     ],
     note: [
         "Numeric within valid date range; 19000101 to 20261231",
@@ -4678,6 +4690,7 @@ export const field_275 = {len: 8, pos_start: 2769, pos_end: 2777,
     validate: _validate_date, allow_blank: true,
     options: [
       {op: "range", "min":"19000101","max":"20261231"},
+      {op: "date_range", "min":false,"max":false},
     ],
     note: [
         "Numeric within valid date range; 19000101 to 20261231",
@@ -9694,6 +9707,7 @@ export const field_727 = {len: 8, pos_start: 5137, pos_end: 5145,
       {op: "enum", options: {
         "N/A": "N/A",
       }},
+      {op: "date_range", "min":false,"max":false},
     ],
     note: [
         "Format is CCYYMMDD",
@@ -10039,6 +10053,7 @@ export const field_750 = {len: 8, pos_start: 5259, pos_end: 5267,
       {op: "enum", options: {
         "N/A": "N/A",
       }},
+      {op: "date_range", "min":false,"max":false},
     ],
     note: [
         "Format is CCYYMMDD",
@@ -10372,6 +10387,7 @@ export const field_773 = {len: 8, pos_start: 5381, pos_end: 5389,
       {op: "enum", options: {
         "N/A": "N/A",
       }},
+      {op: "date_range", "min":false,"max":false},
     ],
     note: [
         "Format is CCYYMMDD",
@@ -10705,6 +10721,7 @@ export const field_796 = {len: 8, pos_start: 5503, pos_end: 5511,
       {op: "enum", options: {
         "N/A": "N/A",
       }},
+      {op: "date_range", "min":false,"max":false},
     ],
     note: [
         "Format is CCYYMMDD",
@@ -11038,6 +11055,7 @@ export const field_819 = {len: 8, pos_start: 5625, pos_end: 5633,
       {op: "enum", options: {
         "N/A": "N/A",
       }},
+      {op: "date_range", "min":false,"max":false},
     ],
     note: [
         "Format is CCYYMMDD",
@@ -11371,6 +11389,7 @@ export const field_842 = {len: 8, pos_start: 5747, pos_end: 5755,
       {op: "enum", options: {
         "N/A": "N/A",
       }},
+      {op: "date_range", "min":false,"max":false},
     ],
     note: [
         "Format is CCYYMMDD",
