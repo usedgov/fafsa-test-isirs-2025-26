@@ -2,9 +2,14 @@
 The following test ISIRs are currently available. Additional test ISIRs will be added as they become available.
 * All personally identifiable information (PII) in these test ISIRS is mock data and does not reflect real people.
 * These test ISIRs reflect the current 2025-26 ISIR format. 
-* To download a file: select the file, and on the resulting page click the "Download raw file" button in the upper right menu.
 
-Note: Some files may be too large to view within Github. Please refer to the project [README] (../README.md) for instructions on how to download and use the included ISIR viewer tool.
+Note: Some files may be too large to view within GitHub. Please refer to the project [README] (../README.md) for instructions on how to use the included ISIR viewer tool.
+
+### Downloading a File
+1. Click on a file below
+2. On the next page, click the "Download raw file" button in the upper right menu. (![Downoad Button](../assets/download-button.png))
+
+
 
 | Filename | Description |
 |----------|-------------|
