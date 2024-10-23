@@ -8,7 +8,7 @@ Note: Some files may be too large to view within GitHub. Please refer to the pro
 ### Downloading a File
 1. Click on a file below
 2. On the next page, click the "Download raw file" button in the upper right menu. 
-    * ![Downoad Button](../assets/download-button.png)
+    * i.e. ![Downoad Button](../assets/download-button.png)
 
 
 
