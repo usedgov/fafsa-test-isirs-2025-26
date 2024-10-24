@@ -6,7 +6,7 @@ The following test ISIRs are currently available. Additional test ISIRs will be 
 Note: Some files may be too large to view within GitHub. Please refer to the project [README](../README.md) for instructions on how to use the included ISIR viewer tool.
 
 ### Downloading a File
-1. Click on a file below
+1. Click on a file in the table below
 2. On the next page, click the "Download raw file" button in the upper right menu. 
     * i.e. ![Downoad Button](../assets/download-button.png)
 
