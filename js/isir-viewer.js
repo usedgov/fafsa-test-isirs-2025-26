@@ -2,53 +2,89 @@
 // Module `isir_viewer` renders ISIR frames into user interface elements */
 //
 
-import {imm, imm_set, imm_html, imm_raf, imm_emit} from 'https://cdn.jsdelivr.net/npm/imm-dom@0.3.3/esm/index.min.js'
-import {read_isir_frames_from_filelist} from './isir-frame-io.js'
+import {imm, imm_set, imm_html, imm_raf, imm_emit} from 'https://cdn.jsdelivr.net/npm/imm-dom@0.3.10/esm/index.min.js'
+import {read_isir_frames} from './isir-frame-io.js'
+
+export {imm, imm_set, imm_html, imm_raf, imm_emit}
+
+export const isir_txn_uuid = (isir_frame) => isir_frame.slice(37,73)
+
+export function select_isir_frame(isir_frame_or_index) {
+    const isir_samples = globalThis.isir_samples
+    if (!isir_samples)
+        return (console.warn('No valid ISIR frame found'), {})
+
+    let isir_label, isir_frame, idx_selected
+    isir_frame_or_index ??= 1 + parseInt(sessionStorage.getItem('isir_sample_index') || 0)
+
+    if (isFinite(isir_frame_or_index) || null == isir_frame_or_index) {
+        idx_selected = Math.min(isir_samples.length, Math.max(1, isir_frame_or_index || 0)) - 1
+        isir_frame = isir_samples[idx_selected]
+    } else {
+        if ('string' === typeof isir_frame_or_index && isir_frame_or_index.length > 256)
+            isir_frame = isir_frame_or_index
+        else if (isir_frame_or_index.call) 
+            isir_frame = isir_samples.find(isir_frame_or_index)
+        else if (isir_frame_or_index.test) 
+            isir_frame = isir_samples.find(f => isir_frame_or_index.test(f))
+        else if (isir_frame_or_index.trim) 
+            isir_frame = isir_samples.find(f => f && f.includes(isir_frame_or_index))
+
+        idx_selected = isir_samples.indexOf(isir_frame)
+    }
+
+    if (0 <= idx_selected) {
+        sessionStorage.setItem('isir_sample_index', idx_selected)
+        isir_label = `ISIR[${1+idx_selected}]`
+    }
+
+    let el_sample_count = document.getElementById('isir_sample_count')
+    if (el_sample_count) {
+        el_sample_count.textContent = ''+isir_samples.length
+
+        let el_selector = el_sample_count.closest('label')?.querySelector('input[type=number]')
+        if (el_selector)
+            el_selector.value = (0 <= idx_selected) ? 1+idx_selected : ''
+    }
+
+    globalThis.active_isir_frame = isir_frame
+    if (!isir_frame)
+        return (console.warn('No valid ISIR frame found'), {})
+
+    isir_label ||= `ISIR for ${isir_txn_uuid(isir_frame)}`
+    return {isir_frame, isir_label}
+}
 
 // Renders a given ISIR frame into validation report and all fields, grouped by section.
 // Also accepts an index into `globalThis.isir_samples`
-export function show_isir(isir_frame) {
+export function show_isir(isir_frame_or_index) {
     if (!globalThis.isir_module) {
         console.warn("isir_module not available", globalThis.isir_module)
-        return;
+        return {}
     }
 
-    document.documentElement.classList.add('loaded-isir-frames')
-
-    if (globalThis.isir_samples) {
-        isir_frame ??= parseInt(sessionStorage.getItem('isir_sample_index') || 0)
-
-        if ('string' !== typeof isir_frame)
-            isir_frame = globalThis.isir_samples[isir_frame]
-
-        let idx_selected = globalThis.isir_samples.indexOf(isir_frame)
-        if (0 <= idx_selected) {
-            sessionStorage.setItem('isir_sample_index', idx_selected)
-        }
-
-        let el_sample_count = document.getElementById('isir_sample_count')
-        if (el_sample_count) {
-            el_sample_count.textContent = ''+globalThis.isir_samples.length
-
-            let el_selector = el_sample_count.closest('label')?.querySelector('input[type=number]')
-            if (el_selector)
-                el_selector.setAttribute('value', (0 <= idx_selected) ? 1+idx_selected : '')
-        }
-    }
-
-    if (!isir_frame)
-        return console.warn('No valid ISIR frame found')
+    let {isir_frame, isir_label} = select_isir_frame(isir_frame_or_index)
 
     let isir_validation = new Map() // collect validation errors by field
-    let isir_report = isir_module.isir_load_report(isir_frame, {mode: isir_validation})
+    let isir_report = isir_frame && isir_module.isir_load_report(isir_frame, {mode: isir_validation})
+
+    if (!isir_report)
+        return void imm_set(document.getElementById('output_isirs'), null)
+
+    let isir_uuid = isir_module.isir_field_read(isir_module.field_3, isir_frame)
 
     imm_set(document.getElementById('output_isirs'), 
-        _render_validation_report(isir_validation),
-        _render_fields(isir_report))
+        isir_report ? [
+            imm_html.h2('ISIR Fields'),
+            imm_html.p(`For ISIR[${isir_uuid.split('-',1)[0]}] uuid `, imm_html.code(`"${isir_uuid}"`), ' (field 3)'),
+            _render_validation_report(isir_validation),
+            _render_fields(isir_report),
+        ] : null,
+    )
 
     // browsable ISIR object model, usable from the developer console
     let isir_obj = isir_module.isir_model_from(isir_frame)
-    let evt_details = {isir_frame, isir_validation, isir_obj}
+    let evt_details = {isir_frame, isir_label, isir_validation, isir_obj}
 
     // notify other UI elements of the currently shown ISIR
     imm_emit(document, 'isir_shown', evt_details)
@@ -93,7 +129,7 @@ function _render_validation_report(isir_validation) {
     }
 
     return imm_html.aside({class:'isir-validation'},
-        imm_html.h2('ISIR Field Validation'),
+        imm_html.h3('Validation'),
         el_report)
 }
 
@@ -130,7 +166,7 @@ function _render_fields(isir_report) {
     }
 
     return imm_html.article({class:'isir-fields'},
-      imm_html.h2('ISIR Fields'),
+      imm_html.h3('Detail'),
       all_sections)
 }
 
@@ -153,7 +189,7 @@ function _isir_section_for(sect, {open}) {
     }
 
     imm_set(res.el_summary,
-        imm_html.small(`[${sect.path.join('.')}] `),
+        imm_html.small(`[${sect.path}] `),
         sect.non_empty ? imm_html.b(sect.section) : imm_html.span(sect.section),
         imm_html.small(` (non-empty: ${sect.non_empty})`),
     )
@@ -163,30 +199,37 @@ function _isir_section_for(sect, {open}) {
 
 // Validates a list of ISIRs to compile unique validation error messages by field.
 // Not currently accessible outside the Developer Console
-export async function check_isirs_list(isir_list=globalThis.isir_samples) {
-    let unique_warnings
-    for (unique_warnings of iter_check_isirs_list(isir_list)) {
-        console.log(unique_warnings)
+export async function check_isirs_list(isir_frame_list=globalThis.isir_samples) {
+    for (var res of iter_check_isirs_list(isir_frame_list)) {
+        console.log(res)
         await imm_raf()
     }
-    return unique_warnings
+    return res
 }
-export function * iter_check_isirs_list(isir_list=globalThis.isir_samples) {
+export function * iter_check_isirs_list(isir_frame_list=globalThis.isir_samples) {
     let unique_warnings = new Map()
+    let with_validation_errors = []
     let isir_validation = new Map() // collect validation errors by field
     let n = 0
-    for (let isir of isir_list) {
+    for (let isir_frame of isir_frame_list) {
         if (0 == (++n % 100))
-            yield unique_warnings
+            yield {unique_warnings, with_validation_errors}
 
-        isir_module.isir_load_report(isir, {mode: isir_validation})
+        isir_module.isir_load_report(isir_frame, {mode: isir_validation})
         if (0 != isir_validation.size) {
             console.group('Issues for ISIR %o', n)
+            {
+                let student_email = isir_module.isir_field_read(isir_module.field_33, isir_frame)
+                let uuid = isir_module.isir_field_read(isir_module.field_3, isir_frame)
+                with_validation_errors.push({student_email, uuid})
+                console.log(`with student email <${student_email}> (field 33), uuid "${uuid}" (field 3)`)
+            }
+
             for (let [field, res] of isir_validation.entries()) {
                 let counts = unique_warnings.get(field) || new Map()
 
                 if (field.name && 581 != field.idx)
-                    console.log('Field %o "%s"', field.idx, field.name, res)
+                    console.log('Field %o "%s"', field.idx, field.name, res.invalid, res)
 
                 for (let key of res.issues)
                     counts.set(key, 1 + (counts.get(key) || 0))
@@ -197,18 +240,112 @@ export function * iter_check_isirs_list(isir_list=globalThis.isir_samples) {
             console.groupEnd()
         }
     }
-    return unique_warnings
+
+    yield {unique_warnings, with_validation_errors}
 }
 
 
 // For use in file HTMLInputElement selection event
-// Loads list of ISIR frames from a collection of ISIR text files using `read_isir_frames_from_filelist`
+// Loads list of ISIR frames from a collection of ISIR text files using `read_isir_frames`
 export const on_use_isir_files = async (file_list_src) =>
-    use_isir_samples( await read_isir_frames_from_filelist(file_list_src))
+    use_isir_samples(await read_isir_frames(file_list_src))
 
-export const use_isir_samples = async (isir_samples=globalThis.isir_samples) => (
-    isir_samples = await isir_samples,
-    imm_emit(document, 'isir_samples_updated', {isir_samples}))
+export async function on_use_isir_text(el_input, opt={}) {
+    if (!el_input.value) return;
+    let isir_frames = await read_isir_frames(el_input.value)
+    el_input.value = ''
+    el_input.placeholder = `Loaded ${isir_frames.length} ISIR frames at ${new Date().toLocaleTimeString()}`
+    sessionStorage.setItem('isir_sample_index', 0)
+    return use_isir_samples(isir_frames)
+}
+
+export async function use_isir_samples(isir_samples=globalThis.isir_samples, update_loaded_isir_samples=true) {
+    globalThis.isir_samples = isir_samples = Array.from(await isir_samples).filter(Boolean)
+
+    let el_count = document.getElementById('isir_sample_count')
+    if (el_count) el_count.textContent = ''+isir_samples.length
+
+    imm_emit(document, 'isir_samples_updated', {isir_samples})
+
+    if (update_loaded_isir_samples) {
+        document.getElementById('isir_show_selector')?.focus()
+        globalThis.loaded_isir_samples = Array.from(isir_samples)
+        document.documentElement.classList.toggle('loaded-isir-frames', isir_samples?.length > 0)
+
+        console.log('Loaded %o ISIR frames', isir_samples.length)
+        imm_emit(document, 'loaded_isir_samples', {loaded_isir_samples: isir_samples})
+    }
+    return isir_samples
+}
+
+
+
+export function on_search_isirs(search) {
+    if (null==search) {
+        search = sessionStorage.getItem("isir_search_selector")
+        if (!search) return
+    }
+    search = !search ? '' : search.trim ? search : search.target?.value ?? search.value
+
+    isir_viewer.use_matching_isirs(search)
+
+    sessionStorage.setItem("isir_search_selector", search)
+    let el_search = document.querySelector('#isir_search_selector input[type=search]')
+    if (el_search) el_search.value = search
+    return search
+}
+
+export const use_filtered_isirs = (isir_filter_collection, isir_frame_list=globalThis.loaded_isir_samples) =>
+    use_isir_samples( filter_isirs('remove', isir_filter_collection, isir_frame_list) , false)
+
+export const use_matching_isirs = (isir_filter_collection, isir_frame_list=globalThis.loaded_isir_samples) =>
+    use_isir_samples( filter_isirs('keep', isir_filter_collection, isir_frame_list) , false)
+
+function filter_isirs(match_mode, isir_filter_collection, isir_frame_list=globalThis.loaded_isir_samples) {
+    isir_frame_list = Array.from(isir_frame_list)
+
+    if (null == isir_filter_collection) {
+        for (var issue_rpt of iter_check_isirs_list(isir_frame_list)) {}
+        isir_filter_collection = issue_rpt.with_validation_errors
+        console.log({issue_rpt, isir_filter_collection, isir_frame_list})
+    }
+
+    if ('string'===typeof isir_filter_collection || !isir_filter_collection[Symbol.iterator])
+        isir_filter_collection = [isir_filter_collection]
+
+    const _isir_student_email = isir_frame => isir_frame.slice(373, 423).trim()
+    const _isir_uuid = (isir_frame, n=1) => isir_frame.slice(n*36 + 1, n*36 + 37)
+    const _isir_in_exclusion_set = isir_frame => by_set.some(isir_frame.includes.bind(isir_frame))
+
+
+    let by_func=[_isir_in_exclusion_set], by_set = new Set()
+    for (let filter of isir_filter_collection) {
+        if (filter.trim) by_set.add(filter)
+        else if (filter[Symbol.iterator])
+          for (let e of filter) by_set.add(e)
+        else if (filter.test) by_func.push(isir_frame => filter.test(isir_frame))
+        else if (filter.call) by_func.push(filter)
+        else if (filter.uuid) by_set.add(filter.uuid)
+        else if (filter.student_email) by_set.add(filter.student_email)
+        else throw new TypeError(filter)
+    }
+
+    by_set = Array.from(by_set)
+
+    match_mode ||= 'remove'
+    let is_excluded = {
+        keep: test => ! test,
+        remove: test => !! test,
+    }
+    for (let isir_idx in isir_frame_list) {
+        let isir_frame = isir_frame_list[isir_idx]
+        for (let fn_filter of by_func)
+            if (is_excluded[match_mode]( fn_filter(isir_frame) ))
+                isir_frame_list[isir_idx] = null
+    }
+
+    return isir_frame_list = isir_frame_list.filter(Boolean)
+}
 
 
 // Install globalThis.isir_viewer module, and hook into ISIR-Viewer specific events / globals for the user interface
@@ -216,23 +353,16 @@ export function isir_viewer_init(globals) {
     if (globals)
         Object.assign(globalThis, globals)
 
-    imm(document, {
-        isir_samples_updated(evt) {
-            let {isir_samples, idx_selected} = evt.detail
-            if (null == isir_samples[0])
-                isir_samples = isir_samples.slice(1)
-            console.log('Loaded %o isir frames', isir_samples.length, {idx_selected})
-            globalThis.isir_samples = isir_samples
-            show_isir(idx_selected)
-        }})
-
-    if (globalThis.isir_samples)
-        use_isir_samples()
+    document.addEventListener('isir_samples_updated', (evt) => show_isir(evt.detail?.idx_selected))
+    if (globalThis.isir_samples) use_isir_samples()
 
     return {
         show_isir,
+        select_isir_frame,
         on_use_isir_files,
+        on_use_isir_text,
         use_isir_samples,
+        on_search_isirs, filter_isirs, use_filtered_isirs, use_matching_isirs,
         check_isirs_list,
         iter_check_isirs_list,
     }
